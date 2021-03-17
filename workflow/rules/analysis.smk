@@ -35,6 +35,24 @@ rule trinityAssembly:
     wrapper:
         "0.72.0/bio/trinity"
 
+
+rule Busco:
+    input:
+        "results/trinity_out_dir/transcriptome.fasta"
+    output:
+        "results/busco/transcriptome.busco.tsv",
+    log:
+        "logs/busco.log"
+    threads: 8
+    params:
+        mode="transcriptome",
+        lineage_path="diptera_odb10",
+        # optional parameters
+        extra=""
+    wrapper:
+        "0.72.0/bio/busco"
+
+
 rule KallistoIndex:
 	input:
 		fasta = "results/trinity_out_dir/transcriptome.fasta"
