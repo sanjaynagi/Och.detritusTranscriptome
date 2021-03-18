@@ -35,6 +35,24 @@ rule trinityAssembly:
     wrapper:
         "0.72.0/bio/trinity"
 
+rule TransRate:
+    input:
+        assembly = "results/trinity_out_dir/transcriptome.fasta",
+        left="resources/reads/volatiles_1_1.fq.gz",
+        right="resources/reads/volatiles_2_2.fq.gz"
+    output:
+        directory("results/transrate")
+    log:
+        "logs/transrate.log"
+    conda:
+        "../envs/rnaseq.yaml"
+    threads: 16
+    shell:
+        """
+        transrate --assembly {input.assembly} \
+            --left {input.left} --right {input.right} \
+            --output {output} 
+        """
 
 rule Busco:
     input:
