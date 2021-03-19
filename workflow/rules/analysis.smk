@@ -35,11 +35,11 @@ rule trinityAssembly:
     wrapper:
         "0.72.0/bio/trinity"
 
-rule TransRate:
+rule transRate:
     input:
         assembly = "results/trinity_out_dir/transcriptome.fasta",
-        left="resources/reads/volatiles_1_1.fq.gz",
-        right="resources/reads/volatiles_2_2.fq.gz"
+        left = "resources/reads/volatiles_1_1.fq.gz",
+        right = "resources/reads/volatiles_2_2.fq.gz"
     output:
         directory("results/transrate")
     log:
@@ -53,6 +53,37 @@ rule TransRate:
             --left {input.left} --right {input.right} \
             --output {output} 
         """
+
+rule transdecoderLongORFs:
+    input:
+        fasta = "results/trinity_out_dir/transcriptome.fasta",
+        #gene_trans_map="test.gtm" # optional gene-to-transcript identifier mapping file (tab-delimited, gene_id<tab>trans_id<return> )
+    output:
+        "results/transdecoder_dir/longest_orfs.pep"
+    log:
+        "logs/transdecoder/longorfs.log"
+    params:
+        extra=""
+    wrapper:
+        "0.72.0/bio/transdecoder/longorfs"
+
+rule transdecoderPredict:
+    input:
+        fasta = "results/trinity_out_dir/transcriptome.fasta",
+        longorfs = "results/transdecoder_dir/longest_orfs.pep"
+        #pfam_hits = "pfam_hits.txt", # optionally retain ORFs with hits by inputting pfam results here (run separately)
+        #blastp_hits = "blastp_hits.txt", # optionally retain ORFs with hits by inputting blastp results here (run separately)
+    output:
+        "results/transdecoder/transdecoder.bed",
+        "results/transdecoder/transdecoder.cds",
+        "results/transdecoder/transdecoder.pep",
+        "results/transdecoder/transdecoder.gff3"
+    log:
+        "logs/transdecoder/predict.log"
+    params:
+        extra=""
+    wrapper:
+        "0.72.0/bio/transdecoder/predict"
 
 rule Busco:
     input:
@@ -80,6 +111,7 @@ rule KallistoIndex:
 		"logs/kallisto/index.log"
 	wrapper:
 		"0.72.0/bio/kallisto/index"
+
 
 rule KallistoQuant:
 	input:
