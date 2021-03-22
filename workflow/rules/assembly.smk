@@ -111,14 +111,14 @@ rule makeBlastDB:
     shell:
         "makeblastdb -in {input} -dbtype prot"
 
-rule Blast:
+rule BlastNucl:
     input:
         "results/Trinity_out_dir/Trinity.fasta",
         ".db.complete"
     output:
         touch(".blast.complete")
     log:
-        "logs/blastdb.log"
+        "logs/blastnucl.log"
     conda:
         "../envs/rnaseq.yaml"
     threads: 12
@@ -126,4 +126,58 @@ rule Blast:
         """
         blastx -query Trinity.fasta -db resources/uniprot_sprot.fasta -out blastx.outfmt6 \
         -evalue 1e-20 -num_threads {threads} -max_target_seqs 1 -outfmt 6
+        """
+
+rule BlastProt:
+    input:
+        fasta = "results/Trinity_out_dir/Trinity.fasta",
+        longorfs = "Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
+        db = ".db.complete"
+    output:
+        touch(".blastprot.complete")
+    log:
+        "logs/blastpro.log"
+    conda:
+        "../envs/rnaseq.yaml"
+    threads: 12
+    shell:
+        """
+        blastp -query {input.longestorfs} \
+        -db resources/uniprot_sprot.fasta \
+        -num_threads {threads} \
+        -max_target_seqs 1 \
+        -outfmt 6 > blastp.outfmt6
+        """
+
+
+rule hmmScan:
+    input:
+        longorfs = "Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
+        pfam = "resources/Pfam-A.hmm"
+    output:
+        pfam = "results/TrinotatePFAM.out"
+    conda:
+        "../envs/rnaseq.yaml"
+    threads: 12
+    log:
+        "logs/hmmscan.log"
+    shell:
+        """
+        hmmscan --cpu {threads} --domtblout {output.pfam} {input.pfam} 2> {log}
+        """
+
+rule tmhmm:
+    input:
+        longorfs = "Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
+        pfam = "resources/Pfam-A.hmm"
+    output:
+        tmhmm = "results/tmhmm.out"
+    conda:
+        "../envs/rnaseq.yaml"
+    threads: 12
+    log:
+        "logs/tmhmm.log"
+    shell:
+        """
+        tmhmm --short < {input.longorfs} > {output.tmhmm} 2> {log}
         """

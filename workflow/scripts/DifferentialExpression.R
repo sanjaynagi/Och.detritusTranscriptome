@@ -23,9 +23,6 @@ library(EnhancedVolcano)
 samples = fread("config/samples.tsv", sep="\t") %>% as.data.frame()
 contrasts = c("Control_EPNexposed", "Control_volatiles", "EPNexposed_volatiles")
 
-#contrastsdf = fread(snakemake@input[['DEcontrasts']])
-#contrasts = contrastsdf$contrast
-
 ##### define functions ######
 round_df = function(df, digits) {
   
@@ -193,17 +190,15 @@ for (cont in contrasts){
   # store names of comparisons for xlsx report sheets
   results_list[[cont]] = results
   names_list[[cont]] = cont
-  
   pdf(glue("results/genediff/Volcano_plot_{cont}.pdf"))
   print(EnhancedVolcano(results_list[[cont]],
-                        lab=GeneID,
+                        lab=results_list[[cont]]$GeneID,
                         x='log2FoldChange',
                         y='pvalue',
                         title = cont))
   null = dev.off()
   cat("\n", glue("{cont} complete!"), "\n")
 }
-
 
 #### write to excel file on diff sheets #### 
 sheets = unlist(names_list)
@@ -214,6 +209,6 @@ for (i in 1:length(sheets)){
   writeData(wb, sheets[i], results_list[[i]], rowNames = FALSE, colNames = TRUE)
 }
 #### save workbook to disk once all worksheets and data have been added ####
-saveWorkbook(wb,file=snakemake@output[['xlsx']], overwrite = TRUE)
+saveWorkbook(wb,file="results/genediff/Ae.detritus_DE.xlsx", overwrite = TRUE)
 
 sessionInfo()
