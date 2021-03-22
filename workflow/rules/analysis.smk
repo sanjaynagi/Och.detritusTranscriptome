@@ -97,14 +97,12 @@ rule Busco:
     params:
         mode="transcriptome",
         lineage_path="diptera_odb10",
-        # optional parameters
-        extra=""
     conda:
-          "../envs/rnaseq.yaml"
+          "../envs/busco.yaml"
     shell:
         """
-		busco --in {input.fasta} --out results/busco/ --force --cpu {threads} \
-		--mode {params.mode} --lineage {params.lineage_path} 2> {log} 
+        busco --in {input.fasta} --out results/busco/ --force --cpu {threads} \
+        --mode {params.mode} --lineage {params.lineage_path} 2> {log} 
 	"""
 
 rule KallistoIndex:
