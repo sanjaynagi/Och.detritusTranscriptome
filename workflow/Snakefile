@@ -14,10 +14,12 @@ rule all:
         # Subsequent target rules can be specified below. They should start with all_*.
         expand("results/quant/{sample}", sample=samples),
 	"results/busco/transcriptome.busco.tsv",
-	"Trinity.fasta.transdecoder.bed",
+	"results/transdecoder/Trinity.fasta.transdecoder.bed",
 #        expand("resources/reads/qc/{sample}_{n}_fastqc.html", sample=samples, n=[1,2]),
 #        "results/transrate"
 
 
 #include: "rules/common.smk"
-include: "rules/analysis.smk"
+include: "rules/qc.smk"
+include: "rules/assembly.smk"
+include: "rules/diff.smk"
