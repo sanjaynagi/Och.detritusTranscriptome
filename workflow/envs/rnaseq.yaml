@@ -5,3 +5,7 @@ channels:
   - conda-forge
 dependencies:
   - transrate
+  - snap
+  - salmon
+  - transdecoder=5.5.0
+  - busco

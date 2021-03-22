@@ -10,7 +10,8 @@ rule FastQC:
     log:
         "logs/FastQC/{sample}_{n}_QC.log"
     params:
-        outdir="--outdir resources/reads/qc"
+        outdir="--outdir resources/reads/qc",
+	dir="--dir results/tmp"
     wrapper:
         "0.72.0/bio/fastqc"
 
@@ -20,7 +21,7 @@ rule trinityAssembly:
         left=expand("resources/reads/{sample}_1.fq.gz", sample=samples),
         right=expand("resources/reads/{sample}_2.fq.gz", sample=samples)
     output:
-        "results/trinity_out_dir/transcriptome.fasta"
+        "results/trinity_out_dir/Trinity.fasta"
     log:
         'logs/trinity.log'
     params:
@@ -37,15 +38,15 @@ rule trinityAssembly:
 
 rule transRate:
     input:
-        assembly = "results/trinity_out_dir/transcriptome.fasta",
+        assembly = "results/trinity_out_dir/Trinity.fasta",
         left = "resources/reads/volatiles_1_1.fq.gz",
         right = "resources/reads/volatiles_2_2.fq.gz"
     output:
         directory("results/transrate")
     log:
         "logs/transrate.log"
-    conda:
-        "../envs/rnaseq.yaml"
+#    conda:
+#        "../envs/rnaseq.yaml"
     threads: 16
     shell:
         """
@@ -56,10 +57,10 @@ rule transRate:
 
 rule transdecoderLongORFs:
     input:
-        fasta = "results/trinity_out_dir/transcriptome.fasta",
+        fasta = "results/trinity_out_dir/Trinity.fasta",
         #gene_trans_map="test.gtm" # optional gene-to-transcript identifier mapping file (tab-delimited, gene_id<tab>trans_id<return> )
     output:
-        "results/transdecoder_dir/longest_orfs.pep"
+        directory("Trinity.fasta.transdecoder_dir")
     log:
         "logs/transdecoder/longorfs.log"
     params:
@@ -69,15 +70,15 @@ rule transdecoderLongORFs:
 
 rule transdecoderPredict:
     input:
-        fasta = "results/trinity_out_dir/transcriptome.fasta",
-        longorfs = "results/transdecoder_dir/longest_orfs.pep"
+        fasta = "results/trinity_out_dir/Trinity.fasta",
+        longorfs = "Trinity.fasta.transdecoder_dir/longest_orfs.pep"
         #pfam_hits = "pfam_hits.txt", # optionally retain ORFs with hits by inputting pfam results here (run separately)
         #blastp_hits = "blastp_hits.txt", # optionally retain ORFs with hits by inputting blastp results here (run separately)
     output:
-        "results/transdecoder/transdecoder.bed",
-        "results/transdecoder/transdecoder.cds",
-        "results/transdecoder/transdecoder.pep",
-        "results/transdecoder/transdecoder.gff3"
+        "Trinity.fasta.transdecoder.bed",
+        "Trinity.fasta.transdecoder.cds",
+        "Trinity.fasta.transdecoder.pep",
+        "Trinity.fasta.transdecoder.gff3"
     log:
         "logs/transdecoder/predict.log"
     params:
@@ -87,7 +88,7 @@ rule transdecoderPredict:
 
 rule Busco:
     input:
-        "results/trinity_out_dir/transcriptome.fasta"
+        fasta = "results/trinity_out_dir/Trinity.fasta"
     output:
         "results/busco/transcriptome.busco.tsv",
     log:
@@ -98,13 +99,17 @@ rule Busco:
         lineage_path="diptera_odb10",
         # optional parameters
         extra=""
-    wrapper:
-        "0.72.0/bio/busco"
-
+    conda:
+          "../envs/rnaseq.yaml"
+    shell:
+        """
+		busco --in {input.fasta} --out results/busco/ --force --cpu {threads} \
+		--mode {params.mode} --lineage {params.lineage_path} 2> {log} 
+	"""
 
 rule KallistoIndex:
 	input:
-		fasta = "results/trinity_out_dir/transcriptome.fasta"
+		fasta = "results/trinity_out_dir/Trinity.fasta"
 	output:
 		index = "resources/reference/kallisto.idx"
 	log:
@@ -123,7 +128,7 @@ rule KallistoQuant:
 		"logs/kallisto/quant_{sample}.log"
 	params:
 		extra = "-b 100"
-	threads:24
+	threads:6
 	wrapper:
 		"0.72.0/bio/kallisto/quant"
 
