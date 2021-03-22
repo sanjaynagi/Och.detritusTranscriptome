@@ -4,7 +4,7 @@ rule trinityAssembly:
         left=expand("resources/reads/{sample}_1.fq.gz", sample=samples),
         right=expand("resources/reads/{sample}_2.fq.gz", sample=samples)
     output:
-        "results/trinity_out_dir/transcriptome.fasta"
+        "results/trinity_out_dir/Trinity.fasta"
     log:
         'logs/trinity.log'
     params:
@@ -21,7 +21,7 @@ rule trinityAssembly:
 
 rule transRate:
     input:
-        assembly = "results/trinity_out_dir/transcriptome.fasta",
+        assembly = "results/trinity_out_dir/Trinity.fasta",
         left = "resources/reads/volatiles_1_1.fq.gz",
         right = "resources/reads/volatiles_2_2.fq.gz"
     output:
@@ -40,7 +40,7 @@ rule transRate:
 
 rule transdecoderLongORFs:
     input:
-        fasta = "results/trinity_out_dir/transcriptome.fasta",
+        fasta = "results/trinity_out_dir/Trinity.fasta",
         #gene_trans_map="test.gtm" # optional gene-to-transcript identifier mapping file (tab-delimited, gene_id<tab>trans_id<return> )
     output:
         "Trinity.fasta.transdecoder_dir/longest_orfs.pep"
@@ -53,7 +53,7 @@ rule transdecoderLongORFs:
 
 rule transdecoderPredict:
     input:
-        fasta = "results/trinity_out_dir/transcriptome.fasta",
+        fasta = "results/trinity_out_dir/Trinity.fasta",
         longorfs = "Trinity.fasta.transdecoder_dir/longest_orfs.pep"
         #pfam_hits = "pfam_hits.txt", # optionally retain ORFs with hits by inputting pfam results here (run separately)
         #blastp_hits = "blastp_hits.txt", # optionally retain ORFs with hits by inputting blastp results here (run separately)
@@ -85,7 +85,7 @@ rule mv1:
 
 rule Busco:
     input:
-        "results/trinity_out_dir/transcriptome.fasta"
+        "results/trinity_out_dir/Trinity.fasta"
     output:
         "results/busco/transcriptome.busco.tsv",
     log:
@@ -98,3 +98,32 @@ rule Busco:
         extra=""
     wrapper:
         "0.72.0/bio/busco"
+
+rule makeBlastDB:
+    input:
+        "resources/uniprot_sprot.fasta"
+    output:
+        touch(".db.complete")
+    log:
+        "logs/blastdb.log"
+    conda:
+        "../envs/rnaseq.yaml"
+    shell:
+        "makeblastdb -in {input} -dbtype prot"
+
+rule Blast:
+    input:
+        "results/Trinity_out_dir/Trinity.fasta",
+        ".db.complete"
+    output:
+        touch(".blast.complete")
+    log:
+        "logs/blastdb.log"
+    conda:
+        "../envs/rnaseq.yaml"
+    threads: 12
+    shell:
+        """
+        blastx -query Trinity.fasta -db resources/uniprot_sprot.fasta -out blastx.outfmt6 \
+        -evalue 1e-20 -num_threads {threads} -max_target_seqs 1 -outfmt 6
+        """
