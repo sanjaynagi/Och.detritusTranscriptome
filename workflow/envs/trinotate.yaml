@@ -1,0 +1,12 @@
+# conda environments needed for the workflow should be stored here.
+channels:
+  - bioconda
+  - r
+  - conda-forge
+  - dansondergaard
+dependencies:
+  - sqlite
+  - hmmer
+  - trinotate
+  - tmhmm.py
+
