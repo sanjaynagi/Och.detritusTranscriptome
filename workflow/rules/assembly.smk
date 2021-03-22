@@ -85,7 +85,7 @@ rule mv1:
 
 rule Busco:
     input:
-        "results/trinity_out_dir/Trinity.fasta"
+        fasta = "results/trinity_out_dir/Trinity.fasta"
     output:
         "results/busco/transcriptome.busco.tsv",
     log:
@@ -93,11 +93,13 @@ rule Busco:
     threads: 8
     params:
         mode="transcriptome",
-        lineage_path="diptera_odb10",
-        # optional parameters
-        extra=""
-    wrapper:
-        "0.72.0/bio/busco"
+        lineage="diptera_odb10",
+    conda:
+        "../envs/busco.yaml"
+    shell:
+        """
+        busco -in {input.fasta} --out results/busco --force --cpu {threads} --mode {params.mode} --linea$
+        """
 
 rule makeBlastDB:
     input:
@@ -157,7 +159,7 @@ rule hmmScan:
     output:
         pfam = "results/TrinotatePFAM.out"
     conda:
-        "../envs/rnaseq.yaml"
+        "../envs/trinotate.yaml"
     threads: 12
     log:
         "logs/hmmscan.log"
@@ -173,7 +175,7 @@ rule tmhmm:
     output:
         tmhmm = "results/tmhmm.out"
     conda:
-        "../envs/rnaseq.yaml"
+        "../envs/trinotate.yaml"
     threads: 12
     log:
         "logs/tmhmm.log"

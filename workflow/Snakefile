@@ -15,6 +15,7 @@ rule all:
         expand("results/quant/{sample}", sample=samples),
 	"results/busco/transcriptome.busco.tsv",
 	"results/transdecoder/Trinity.fasta.transdecoder.bed",
+	"resources/Pfam-A.hmm"
 #        expand("resources/reads/qc/{sample}_{n}_fastqc.html", sample=samples, n=[1,2]),
 #        "results/transrate"
 
