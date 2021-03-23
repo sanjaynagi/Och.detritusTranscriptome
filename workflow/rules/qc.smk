@@ -1,5 +1,4 @@
 
-
 rule FastQC:
     input:
         "resources/reads/{sample}_{n}.fq.gz"
@@ -10,5 +9,8 @@ rule FastQC:
         "logs/FastQC/{sample}_{n}_QC.log"
     params:
         outdir="--outdir resources/reads/qc"
-    wrapper:
-        "0.72.0/bio/fastqc"
+    threads:4
+    shell:
+        """
+        fastqc -t {threads} {params.outdir} {input} 2> {log}
+        """

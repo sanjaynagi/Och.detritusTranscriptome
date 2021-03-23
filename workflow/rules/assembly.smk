@@ -19,6 +19,21 @@ rule trinityAssembly:
     wrapper:
         "0.72.0/bio/trinity"
 
+
+rule cdhit:
+    input:
+        assembly = "results/trinity_out_dir/Trinity.fasta",
+    output:
+        "results/Ae.detritus.cdhit.transcriptome.fa"    
+    log:
+        "logs/cdhit.log"
+    threads: 16
+    shell:
+        """
+        cd-hit-est -i results/trinity_out_dir/Trinity.fasta \
+        -o {output} -c 0.95 -n 8 -T {threads} -M 4000
+        """
+
 rule transRate:
     input:
         assembly = "results/trinity_out_dir/Trinity.fasta",
@@ -28,12 +43,10 @@ rule transRate:
         directory("results/transrate")
     log:
         "logs/transrate.log"
-    conda:
-        "../envs/rnaseq.yaml"
     threads: 16
     shell:
         """
-        transrate --assembly {input.assembly} \
+        workflow/scripts//transrate-1.0.3-linux-x86_64/transrate --assembly {input.assembly} \
             --left {input.left} --right {input.right} \
             --output {output} 
         """
@@ -41,7 +54,7 @@ rule transRate:
 rule transdecoderLongORFs:
     input:
         fasta = "results/trinity_out_dir/Trinity.fasta",
-        #gene_trans_map="test.gtm" # optional gene-to-transcript identifier mapping file (tab-delimited, gene_id<tab>trans_id<return> )
+        gene_trans_map="results/trinity_out_dir/Trinity.fasta.gene_trans_map"
     output:
         "Trinity.fasta.transdecoder_dir/longest_orfs.pep"
     log:
@@ -85,20 +98,21 @@ rule mv1:
 
 rule Busco:
     input:
-        fasta = "results/trinity_out_dir/Trinity.fasta"
+        #fasta = "results/trinity_out_dir/Trinity.fasta"
+        longorfs = "results/transdecoder/Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
     output:
-        "results/busco/transcriptome.busco.tsv",
+        directory("results/busco/Ae.detritus_prot"),
     log:
         "logs/busco.log"
     threads: 8
     params:
-        mode="transcriptome",
+        mode="prot",
         lineage="diptera_odb10",
     conda:
         "../envs/busco.yaml"
     shell:
         """
-        busco -in {input.fasta} --out results/busco --force --cpu {threads} --mode {params.mode} --linea$
+        busco -i {input.longorfs} -l {params.lineage} -o Ae.detritus_prot --out_path results/busco -m {params.mode} --cpu {threads}
         """
 
 rule makeBlastDB:
@@ -115,10 +129,10 @@ rule makeBlastDB:
 
 rule BlastNucl:
     input:
-        "results/Trinity_out_dir/Trinity.fasta",
-        ".db.complete"
+        fasta = "results/trinity_out_dir/Trinity.fasta",
+        db = ".db.complete"
     output:
-        touch(".blast.complete")
+        blast = "results/blastx.outfmt6"
     log:
         "logs/blastnucl.log"
     conda:
@@ -126,17 +140,17 @@ rule BlastNucl:
     threads: 12
     shell:
         """
-        blastx -query Trinity.fasta -db resources/uniprot_sprot.fasta -out blastx.outfmt6 \
+        blastx -query {input.fasta} -db resources/uniprot_sprot.fasta -out {output.blast} \
         -evalue 1e-20 -num_threads {threads} -max_target_seqs 1 -outfmt 6
         """
 
 rule BlastProt:
     input:
-        fasta = "results/Trinity_out_dir/Trinity.fasta",
-        longorfs = "Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
+        fasta = "results/trinity_out_dir/Trinity.fasta",
+        longorfs = "results/transdecoder/Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
         db = ".db.complete"
     output:
-        touch(".blastprot.complete")
+        blast = "results/blastp.outfmt6"
     log:
         "logs/blastpro.log"
     conda:
@@ -144,17 +158,17 @@ rule BlastProt:
     threads: 12
     shell:
         """
-        blastp -query {input.longestorfs} \
+        blastp -query {input.longorfs} \
         -db resources/uniprot_sprot.fasta \
         -num_threads {threads} \
         -max_target_seqs 1 \
-        -outfmt 6 > blastp.outfmt6
+        -outfmt 6 > {output.blast}
         """
 
 
 rule hmmScan:
     input:
-        longorfs = "Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
+        longorfs = "results/transdecoder/Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
         pfam = "resources/Pfam-A.hmm"
     output:
         pfam = "results/TrinotatePFAM.out"
@@ -170,7 +184,7 @@ rule hmmScan:
 
 rule tmhmm:
     input:
-        longorfs = "Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
+        longorfs = "results/transdecoder/Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
         pfam = "resources/Pfam-A.hmm"
     output:
         tmhmm = "results/tmhmm.out"
@@ -183,3 +197,44 @@ rule tmhmm:
         """
         tmhmm --short < {input.longorfs} > {output.tmhmm} 2> {log}
         """
+
+
+rule trinotate:
+    input:
+        longorfs = "results/transdecoder/Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
+        pfam = "results/TrinotatePFAM.out",
+        fasta = "results/trinity_out_dir/Trinity.fasta",
+        genemap = "results/trinity_out_dir/Trinity.fasta.gene_trans_map",
+        blastp =  "results/blastp.outfmt6",
+        blastx =  "results/blastx.outfmt6",
+        tmhmm = "results/tmhmm.out"
+    output:
+        report = "results/trinotate_annotation_report.xls",
+        go = "results/go_annotations.txt"
+    conda:
+        "../envs/trinotate.yaml"
+    threads: 12
+    log:
+        "logs/trinotate.log"
+    shell:
+        """
+        Build_Trinotate_Boilerplate_SQLite_db.pl  Trinotate
+
+        Trinotate Trinotate.sqlite init \
+        --gene_trans_map {input.genemap} \
+        --transcript_fasta {input.fasta} \
+        --transdecoder_pep {input.longorfs} 2> {log}
+
+        Trinotate Trinotate.sqlite LOAD_swissprot_blastp {input.blastp} 2>> {log}
+        Trinotate Trinotate.sqlite LOAD_swissprot_blastx {input.blastx} 2>> {log}
+        Trinotate Trinotate.sqlite LOAD_pfam {input.pfam} 2>> {log}
+        Trinotate Trinotate.sqlite LOAD_tmhmm {input.tmhmm} 2>> {log}
+
+        Trinotate Trinotate.sqlite report > {output.report} 2>> {log}
+
+        extract_GO_assignments_from_Trinotate_xls.pl --Trinotate_xls {output.report} \
+        -G --include_ancestral_terms > {output.go} 2>> {log}
+        """
+
+
+

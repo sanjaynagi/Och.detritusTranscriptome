@@ -23,6 +23,9 @@ library(EnhancedVolcano)
 samples = fread("config/samples.tsv", sep="\t") %>% as.data.frame()
 contrasts = c("Control_EPNexposed", "Control_volatiles", "EPNexposed_volatiles")
 
+samples = samples %>% filter(Name != "EPN_exposed_4")
+
+
 ##### define functions ######
 round_df = function(df, digits) {
   
@@ -209,6 +212,6 @@ for (i in 1:length(sheets)){
   writeData(wb, sheets[i], results_list[[i]], rowNames = FALSE, colNames = TRUE)
 }
 #### save workbook to disk once all worksheets and data have been added ####
-saveWorkbook(wb,file="results/genediff/Ae.detritus_DE.xlsx", overwrite = TRUE)
+saveWorkbook(wb,file="results/genediff/Ae.detritus_DE_noEPN4.xlsx", overwrite = TRUE)
 
 sessionInfo()
