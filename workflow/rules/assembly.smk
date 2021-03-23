@@ -122,12 +122,10 @@ rule makeBlastDB:
         touch(".db.complete")
     log:
         "logs/blastdb.log"
-    conda:
-        "../envs/rnaseq.yaml"
     shell:
-        "makeblastdb -in {input} -dbtype prot"
+        "diamond makedb --in {input} -d resources/uniprot_sprot.db --threads 24"
 
-rule BlastNucl:
+rule DiamondNucl:
     input:
         fasta = "results/trinity_out_dir/Trinity.fasta",
         db = ".db.complete"
@@ -140,17 +138,17 @@ rule BlastNucl:
     threads: 12
     shell:
         """
-        blastx -query {input.fasta} -db resources/uniprot_sprot.fasta -out {output.blast} \
-        -evalue 1e-20 -num_threads {threads} -max_target_seqs 1 -outfmt 6
+        diamond blastx -d resources/uniprot_sprot.db.dmnd \
+        -q {input.fasta} --outfmt 6 --threads {threads} --out {output} \
+        -b12 -c1 --max-target-seqs 1 
         """
 
-rule BlastProt:
+rule DiamondProt:
     input:
-        fasta = "results/trinity_out_dir/Trinity.fasta",
         longorfs = "results/transdecoder/Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
         db = ".db.complete"
     output:
-        blast = "results/blastp.outfmt6"
+        blast = "results/Ae.det_blastp.outfmt6"
     log:
         "logs/blastpro.log"
     conda:
@@ -158,11 +156,8 @@ rule BlastProt:
     threads: 12
     shell:
         """
-        blastp -query {input.longorfs} \
-        -db resources/uniprot_sprot.fasta \
-        -num_threads {threads} \
-        -max_target_seqs 1 \
-        -outfmt 6 > {output.blast}
+        diamond blastp -d resources/uniprot_sprot.db.dmnd \
+        -q {input.longorfs} --outfmt 6 --threads {threads} --out {output} -b12 -c1 --max-target-seqs 1 
         """
 
 
@@ -205,8 +200,8 @@ rule trinotate:
         pfam = "results/TrinotatePFAM.out",
         fasta = "results/trinity_out_dir/Trinity.fasta",
         genemap = "results/trinity_out_dir/Trinity.fasta.gene_trans_map",
-        blastp =  "results/blastp.outfmt6",
-        blastx =  "results/blastx.outfmt6",
+        blastp =  "results/Ae.det_blastp.outfmt6",
+        blastx =  "results/Ae.det_blastx.outfmt6",
         tmhmm = "results/tmhmm.out"
     output:
         report = "results/trinotate_annotation_report.xls",
