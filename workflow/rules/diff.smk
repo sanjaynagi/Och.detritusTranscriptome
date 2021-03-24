@@ -1,9 +1,9 @@
 
 rule KallistoIndex:
 	input:
-		fasta = "results/trinity_out_dir/transcriptome.fasta"
+		fasta = "results/Ae.detritus.cdhit.transcriptome.fa"
 	output:
-		index = "resources/reference/kallisto.idx"
+		index = "resources/reference/kallisto.cdhit.idx"
 	log:
 		"logs/kallisto/index.log"
 	wrapper:
@@ -12,7 +12,7 @@ rule KallistoIndex:
 rule KallistoQuant:
 	input:
 		fastq = expand("resources/reads/{{sample}}_{n}.fq.gz", n=[1,2]),
-		index = "resources/reference/kallisto.idx"
+		index = "resources/reference/kallisto.cdhit.idx"
 	output:
 		directory("results/quant/{sample}")
 	log:

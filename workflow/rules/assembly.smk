@@ -119,7 +119,7 @@ rule makeBlastDB:
     input:
         "resources/uniprot_sprot.fasta"
     output:
-        touch(".db.complete")
+        "resources/uniprot.sprot.db.dmnd"
     log:
         "logs/blastdb.log"
     shell:
@@ -128,17 +128,15 @@ rule makeBlastDB:
 rule DiamondNucl:
     input:
         fasta = "results/trinity_out_dir/Trinity.fasta",
-        db = ".db.complete"
+        db = "resources/uniprot.sprot.db.dmnd"
     output:
-        blast = "results/blastx.outfmt6"
+        blast = "results/Ae.det_blastx.outfmt6"
     log:
-        "logs/blastnucl.log"
-    conda:
-        "../envs/rnaseq.yaml"
+        "logs/diamondnucl.log"
     threads: 12
     shell:
         """
-        diamond blastx -d resources/uniprot_sprot.db.dmnd \
+        diamond blastx -d {input.db} \
         -q {input.fasta} --outfmt 6 --threads {threads} --out {output} \
         -b12 -c1 --max-target-seqs 1 
         """
@@ -146,17 +144,15 @@ rule DiamondNucl:
 rule DiamondProt:
     input:
         longorfs = "results/transdecoder/Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
-        db = ".db.complete"
+        db = "resources/uniprot.sprot.db.dmnd"
     output:
         blast = "results/Ae.det_blastp.outfmt6"
     log:
         "logs/blastpro.log"
-    conda:
-        "../envs/rnaseq.yaml"
     threads: 12
     shell:
         """
-        diamond blastp -d resources/uniprot_sprot.db.dmnd \
+        diamond blastp -d {input.db} \
         -q {input.longorfs} --outfmt 6 --threads {threads} --out {output} -b12 -c1 --max-target-seqs 1 
         """
 
@@ -174,7 +170,7 @@ rule hmmScan:
         "logs/hmmscan.log"
     shell:
         """
-        hmmscan --cpu {threads} --domtblout {output.pfam} {input.pfam} 2> {log}
+        hmmsearch --cpu {threads} --domtblout {output.pfam} {input.pfam} {input.longorfs} 2> {log}
         """
 
 rule tmhmm:
@@ -183,14 +179,12 @@ rule tmhmm:
         pfam = "resources/Pfam-A.hmm"
     output:
         tmhmm = "results/tmhmm.out"
-    conda:
-        "../envs/trinotate.yaml"
     threads: 12
     log:
         "logs/tmhmm.log"
     shell:
         """
-        tmhmm --short < {input.longorfs} > {output.tmhmm} 2> {log}
+        ./tmhmm-2.0c/bin/tmhmm --short < {input.longorfs} > {output.tmhmm} 2> {log}
         """
 
 
