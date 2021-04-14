@@ -1,27 +1,28 @@
 
-rule KallistoIndex:
+rule SalmonIndex:
 	input:
-		fasta = "results/Ae.detritus.cdhit.transcriptome.fa"
+		"results/Ae.detritus.cdhit.transcriptome.fa"
 	output:
-		index = "resources/reference/kallisto.cdhit.idx"
+		directory("resources/reference/transcriptome.idx")
 	log:
-		"logs/kallisto/index.log"
+		"logs/salmon/index.log"
 	wrapper:
-		"0.72.0/bio/kallisto/index"
+		"0.72.0/bio/salmon/index"
 
-rule KallistoQuant:
+rule Salmon:
 	input:
-		fastq = expand("resources/reads/{{sample}}_{n}.fq.gz", n=[1,2]),
-		index = "resources/reference/kallisto.cdhit.idx"
+		r1 = "resources/reads/{sample}_1.fq.gz",
+		r2 = "resources/reads/{sample}_2.fq.gz",
+		index = "resources/reference/transcriptome.idx"
 	output:
 		directory("results/quant/{sample}")
 	log:
-		"logs/kallisto/quant_{sample}.log"
+		"logs/salmon/quant_{sample}.log"
 	params:
-		extra = "-b 100"
+		extra = "--dumpEq"
 	threads:24
 	wrapper:
-		"0.72.0/bio/kallisto/quant"
+		"0.72.0/bio/salmon/quant"
 
 
 #rule DifferentialGeneExpression:

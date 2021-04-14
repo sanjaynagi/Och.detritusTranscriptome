@@ -20,18 +20,18 @@ rule trinityAssembly:
         "0.72.0/bio/trinity"
 
 
-rule cdhit:
+rule rapclust:
     input:
         assembly = "results/trinity_out_dir/Trinity.fasta",
+        config = "config/config.rapclust.yaml"
     output:
-        "results/Ae.detritus.cdhit.transcriptome.fa"    
+        "results/Ae.detritus.clust.transcriptome.fa"    
     log:
-        "logs/cdhit.log"
+        "logs/rapclust.log"
     threads: 16
     shell:
         """
-        cd-hit-est -i results/trinity_out_dir/Trinity.fasta \
-        -o {output} -c 0.95 -n 8 -T {threads} -M 4000
+        RapClust --config {input.config}
         """
 
 rule transRate:
@@ -53,7 +53,7 @@ rule transRate:
 
 rule transdecoderLongORFs:
     input:
-        fasta = "results/trinity_out_dir/Trinity.fasta",
+        fasta = "results/Ae.detritus.clust.transcriptome.fa",
         gene_trans_map="results/trinity_out_dir/Trinity.fasta.gene_trans_map"
     output:
         "Trinity.fasta.transdecoder_dir/longest_orfs.pep"
@@ -117,9 +117,9 @@ rule Busco:
 
 rule makeBlastDB:
     input:
-        "resources/uniprot_sprot.fasta"
+        "resources/uniprot_sprot.pep"
     output:
-        "resources/uniprot.sprot.db.dmnd"
+        "resources/uniprot_sprot.db.dmnd"
     log:
         "logs/blastdb.log"
     shell:
@@ -128,7 +128,7 @@ rule makeBlastDB:
 rule DiamondNucl:
     input:
         fasta = "results/trinity_out_dir/Trinity.fasta",
-        db = "resources/uniprot.sprot.db.dmnd"
+        db = "resources/uniprot_sprot.db.dmnd"
     output:
         blast = "results/Ae.det_blastx.outfmt6"
     log:
@@ -144,7 +144,7 @@ rule DiamondNucl:
 rule DiamondProt:
     input:
         longorfs = "results/transdecoder/Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
-        db = "resources/uniprot.sprot.db.dmnd"
+        db = "resources/uniprot_sprot.db.dmnd"
     output:
         blast = "results/Ae.det_blastp.outfmt6"
     log:
@@ -176,7 +176,6 @@ rule hmmScan:
 rule tmhmm:
     input:
         longorfs = "results/transdecoder/Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
-        pfam = "resources/Pfam-A.hmm"
     output:
         tmhmm = "results/tmhmm.out"
     threads: 12
@@ -188,18 +187,31 @@ rule tmhmm:
         """
 
 
+rule signalP:
+    input:
+        longorfs = "results/transdecoder/Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
+    output:
+        signalP = "results/signalp.out"
+    log:
+        "logs/signalp.log"
+    shell:
+        """
+        cd signalp-5.0b/bin/ && ./signalp -fasta {workflow.basedir}/../{input.longorfs} -format short -prefix {workflow.basedir}/../{output.signalP}
+        """
+
+
 rule trinotate:
     input:
         longorfs = "results/transdecoder/Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
-        pfam = "results/TrinotatePFAM.out",
+        pfam = "results/Ae.detritusPFAM.out",
         fasta = "results/trinity_out_dir/Trinity.fasta",
         genemap = "results/trinity_out_dir/Trinity.fasta.gene_trans_map",
         blastp =  "results/Ae.det_blastp.outfmt6",
         blastx =  "results/Ae.det_blastx.outfmt6",
-        tmhmm = "results/tmhmm.out"
+        tmhmm = "results/tmhmm.out",
+        signalp = "results/signalp.out"
     output:
         report = "results/trinotate_annotation_report.xls",
-        go = "results/go_annotations.txt"
     conda:
         "../envs/trinotate.yaml"
     threads: 12
@@ -207,23 +219,37 @@ rule trinotate:
         "logs/trinotate.log"
     shell:
         """
-        Build_Trinotate_Boilerplate_SQLite_db.pl  Trinotate
-
-        Trinotate Trinotate.sqlite init \
+        workflow/scripts/Trinotate-Trinotate-v3.2.1/Trinotate Trinotate.sqlite init \
         --gene_trans_map {input.genemap} \
         --transcript_fasta {input.fasta} \
         --transdecoder_pep {input.longorfs} 2> {log}
 
-        Trinotate Trinotate.sqlite LOAD_swissprot_blastp {input.blastp} 2>> {log}
-        Trinotate Trinotate.sqlite LOAD_swissprot_blastx {input.blastx} 2>> {log}
-        Trinotate Trinotate.sqlite LOAD_pfam {input.pfam} 2>> {log}
-        Trinotate Trinotate.sqlite LOAD_tmhmm {input.tmhmm} 2>> {log}
+        workflow/scripts/Trinotate-Trinotate-v3.2.1/Trinotate Trinotate.sqlite LOAD_swissprot_blastp {input.blastp} 2>> {log}
+        workflow/scripts/Trinotate-Trinotate-v3.2.1/Trinotate Trinotate.sqlite LOAD_swissprot_blastx {input.blastx} 2>> {log}
+        workflow/scripts/Trinotate-Trinotate-v3.2.1/Trinotate Trinotate.sqlite LOAD_pfam {input.pfam} 2>> {log}
+        workflow/scripts/Trinotate-Trinotate-v3.2.1/Trinotate Trinotate.sqlite LOAD_tmhmm {input.tmhmm} 2>> {log}
+        workflow/scripts/Trinotate-Trinotate-v3.2.1/Trinotate Trinotate.sqlite LOAD_signalp {input.signalp} 2>> {log}
 
-        Trinotate Trinotate.sqlite report > {output.report} 2>> {log}
+        workflow/scripts/Trinotate-Trinotate-v3.2.1/Trinotate Trinotate.sqlite report > {output.report} 2>> {log}
+        """
 
-        extract_GO_assignments_from_Trinotate_xls.pl --Trinotate_xls {output.report} \
-        -G --include_ancestral_terms > {output.go} 2>> {log}
+
+rule trinotateGO:
+    input:
+        report = "results/trinotate_annotation_report.xls",
+    output:
+        go = "results/go_annotations.txt"
+    conda:
+        "../envs/trinotate.yaml"
+    threads: 12
+    log:
+        "logs/GOtrinotate.log"
+    shell:
+        """
+        workflow/scripts/Trinotate-Trinotate-v3.2.1/util/extract_GO_assignments_from_Trinotate_xls.pl --Trinotate_xls {input.report} \
+        -G --include_ancestral_terms > {output.go} 2> {log}
         """
 
 
 
+#        Build_Trinotate_Boilerplate_SQLite_db.pl  Trinotate

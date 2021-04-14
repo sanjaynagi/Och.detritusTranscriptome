@@ -22,6 +22,8 @@ library(EnhancedVolcano)
 #read metadata and get contrasts
 samples = fread("config/samples.tsv", sep="\t") %>% as.data.frame()
 contrasts = c("Control_EPNexposed", "Control_volatiles", "EPNexposed_volatiles")
+gene_names = fread("resources/Aedes_homologs.tsv") %>% select(name, GeneID)
+colnames(gene_names) = c("Aedes_aegypti_homolog", "GeneID")
 
 samples = samples %>% filter(Name != "EPN_exposed_4")
 
@@ -183,7 +185,7 @@ for (cont in contrasts){
   results = unique(left_join(results, readdiff[,c('GeneID','absolute_diff')]))
   
   # join DE results with normal gene names
-  #results = unique(left_join(results, gene_names))
+  results = unique(left_join(results, gene_names))
   fwrite(results, glue("results/genediff/{cont}.csv")) #write to csv 
   # volcano plot for each comparison, using EnhancedVolcano. First make vector of labels which is AGAPs unless a gene name exists
   #labels = results %>% mutate("Gene_name" = case_when(Gene_name == "" ~ GeneID,
