@@ -20,18 +20,19 @@ rule trinityAssembly:
         "0.72.0/bio/trinity"
 
 
-rule rapclust:
+rule Grouper:
     input:
         assembly = "results/trinity_out_dir/Trinity.fasta",
-        config = "config/config.rapclust.yaml"
+        config = "config/config.rapclust.yaml",
+	quant = expand("results/quant/{sample}", sample=samples)
     output:
-        "results/Ae.detritus.clust.transcriptome.fa"    
+        directory("results/Ae.detritus_grouper")    
     log:
-        "logs/rapclust.log"
+        "logs/Grouper.log"
     threads: 16
     shell:
         """
-        RapClust --config {input.config}
+        Grouper --config {input.config}
         """
 
 rule transRate:
@@ -56,7 +57,7 @@ rule transdecoderLongORFs:
         fasta = "results/Ae.detritus.clust.transcriptome.fa",
         gene_trans_map="results/trinity_out_dir/Trinity.fasta.gene_trans_map"
     output:
-        "Trinity.fasta.transdecoder_dir/longest_orfs.pep"
+        "Ae.detritus.transdecoder_dir/longest_orfs.pep"
     log:
         "logs/transdecoder/longorfs.log"
     params:
@@ -66,15 +67,15 @@ rule transdecoderLongORFs:
 
 rule transdecoderPredict:
     input:
-        fasta = "results/trinity_out_dir/Trinity.fasta",
-        longorfs = "Trinity.fasta.transdecoder_dir/longest_orfs.pep"
+        fasta = "results/Ae.detritus.clust.transcriptome.fa",
+        longorfs = "Ae.detritus.transdecoder_dir/longest_orfs.pep"
         #pfam_hits = "pfam_hits.txt", # optionally retain ORFs with hits by inputting pfam results here (run separately)
         #blastp_hits = "blastp_hits.txt", # optionally retain ORFs with hits by inputting blastp results here (run separately)
     output:
-        "Trinity.fasta.transdecoder.bed",
-        "Trinity.fasta.transdecoder.cds",
-        "Trinity.fasta.transdecoder.pep",
-        "Trinity.fasta.transdecoder.gff3"
+        "Ae.detritus.transdecoder.bed",
+        "Ae.detritus.transdecoder.cds",
+        "Ae.detritus.transdecoder.pep",
+        "Ae.detritus.transdecoder.gff3"
     log:
         "logs/transdecoder/predict.log"
     params:
@@ -84,22 +85,22 @@ rule transdecoderPredict:
 
 rule mv1:
     input:
-        longorfs = "Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
-        bed = "Trinity.fasta.transdecoder.bed"
+        longorfs = "Ae.detritus.transdecoder_dir/longest_orfs.pep", 
+        bed = "Ae.detritus.transdecoder.bed"
     output:
-        "results/transdecoder/Trinity.fasta.transdecoder.bed"
+        "results/transdecoder/Ae.detritus.transdecoder_dir/longest_orfs.pep"
     log:
         "logs/mv.log"
     shell:
         """
-        mv Trinity.fasta.transdecoder_dir results/transdecoder 2> {log}
-        mv Trinity.fasta.trans* results/transdecoder/ 2> {log}
+        mv Ae.detritus.transdecoder_dir results/transdecoder 2> {log}
+        mv Ae.detritus.trans* results/transdecoder/ 2> {log}
         """
 
 rule Busco:
     input:
         #fasta = "results/trinity_out_dir/Trinity.fasta"
-        longorfs = "results/transdecoder/Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
+        longorfs = "results/transdecoder/Ae.detritus.transdecoder_dir/longest_orfs.pep", 
     output:
         directory("results/busco/Ae.detritus_prot"),
     log:
@@ -127,7 +128,7 @@ rule makeBlastDB:
 
 rule DiamondNucl:
     input:
-        fasta = "results/trinity_out_dir/Trinity.fasta",
+        fasta = "results/Ae.detritus.clust.transcriptome.fa",
         db = "resources/uniprot_sprot.db.dmnd"
     output:
         blast = "results/Ae.det_blastx.outfmt6"
@@ -143,7 +144,7 @@ rule DiamondNucl:
 
 rule DiamondProt:
     input:
-        longorfs = "results/transdecoder/Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
+        longorfs = "results/transdecoder/Ae.detritus.transdecoder_dir/longest_orfs.pep", 
         db = "resources/uniprot_sprot.db.dmnd"
     output:
         blast = "results/Ae.det_blastp.outfmt6"
@@ -159,10 +160,10 @@ rule DiamondProt:
 
 rule hmmScan:
     input:
-        longorfs = "results/transdecoder/Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
+        longorfs = "results/transdecoder/Ae.detritus.transdecoder_dir/longest_orfs.pep", 
         pfam = "resources/Pfam-A.hmm"
     output:
-        pfam = "results/TrinotatePFAM.out"
+        pfam = "results/Ae.detritusPFAM.out"
     conda:
         "../envs/trinotate.yaml"
     threads: 12
@@ -189,7 +190,7 @@ rule tmhmm:
 
 rule signalP:
     input:
-        longorfs = "results/transdecoder/Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
+        longorfs = "results/transdecoder/Ae.detritus.transdecoder_dir/longest_orfs.pep", 
     output:
         signalP = "results/signalp.out"
     log:
@@ -202,9 +203,9 @@ rule signalP:
 
 rule trinotate:
     input:
-        longorfs = "results/transdecoder/Trinity.fasta.transdecoder_dir/longest_orfs.pep", 
+        longorfs = "results/transdecoder/Ae.detritus.transdecoder_dir/longest_orfs.pep", 
         pfam = "results/Ae.detritusPFAM.out",
-        fasta = "results/trinity_out_dir/Trinity.fasta",
+        fasta = "results/Ae.detritus.clust.transcriptome.fa",
         genemap = "results/trinity_out_dir/Trinity.fasta.gene_trans_map",
         blastp =  "results/Ae.det_blastp.outfmt6",
         blastx =  "results/Ae.det_blastx.outfmt6",

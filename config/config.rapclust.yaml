@@ -20,4 +20,10 @@ samples:
         - results/quant/volatiles_3
         - results/quant/volatiles_4
         - results/quant/volatiles_5
-outdir: results/Ae.detritus_rapclust
+outdir: results/Ae.detritus_grouper
+orphan: True
+mincut: True
+threads: 24
+fasta:
+    - resources/Ae.aegypti.nucl.fa 
+    - results/trinity_out_dir/Trinity.fasta

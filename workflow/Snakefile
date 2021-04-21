@@ -12,10 +12,9 @@ rule all:
     input:
         # The first rule should define the default target files
         # Subsequent target rules can be specified below. They should start with all_*.
-#        quant = expand("results/quant/{sample}", sample=samples),
-#        busco = "results/busco/Ae.detritus_prot",
-#        transdecoder = "results/transdecoder/Trinity.fasta.transdecoder.bed",
-#        pfam = "resources/Pfam-A.hmm", 
+        quant = expand("results/quant/{sample}", sample=samples),
+        busco = "results/busco/Ae.detritus_prot",
+        transdecoder = "results/transdecoder/Ae.detritus.transdecoder_dir/longest_orfs.pep",
         blastx = "results/Ae.det_blastp.outfmt6",
         blastp = "results/Ae.det_blastp.outfmt6",
         report = "results/trinotate_annotation_report.xls",

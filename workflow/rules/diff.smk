@@ -1,13 +1,13 @@
 
 rule SalmonIndex:
 	input:
-		"results/Ae.detritus.cdhit.transcriptome.fa"
+		"results/trinity_out_dir/Trinity.fasta"
 	output:
 		directory("resources/reference/transcriptome.idx")
 	log:
 		"logs/salmon/index.log"
-	wrapper:
-		"0.72.0/bio/salmon/index"
+	shell:
+		"salmon index -t {input} -i {output} 2> {log}"
 
 rule Salmon:
 	input:
@@ -15,14 +15,12 @@ rule Salmon:
 		r2 = "resources/reads/{sample}_2.fq.gz",
 		index = "resources/reference/transcriptome.idx"
 	output:
-		directory("results/quant/{sample}")
+		quant = directory("results/quant/{sample}")
 	log:
 		"logs/salmon/quant_{sample}.log"
-	params:
-		extra = "--dumpEq"
-	threads:24
-	wrapper:
-		"0.72.0/bio/salmon/quant"
+	threads:8
+	shell:
+		"salmon quant -i {input.index} -l A -1 {input.r1} -2 {input.r2} -p {threads} --dumpEq -o {output.quant} 2> {log}"
 
 
 #rule DifferentialGeneExpression:
