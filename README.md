@@ -3,7 +3,7 @@
 [![Snakemake](https://img.shields.io/badge/snakemake-≥5.11.0-brightgreen.svg)](https://snakemake.bitbucket.io)
 [![Build Status](https://travis-ci.org/snakemake-workflows/cw_rnaseq.svg?branch=master)](https://travis-ci.org/snakemake-workflows/cw_rnaseq)
 
-Analysis for CW mosquito helminth data
+Repo and code for Craig Wildings Ochlerotatus detritus RNA-Seq dataset. 
 
 ## Authors
 

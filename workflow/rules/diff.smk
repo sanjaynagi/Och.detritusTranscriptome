@@ -23,21 +23,21 @@ rule Salmon:
 		"salmon quant -i {input.index} -l A -1 {input.r1} -2 {input.r2} -p {threads} --dumpEq -o {output.quant} 2> {log}"
 
 
-#rule DifferentialGeneExpression:
-#	input:
-#		samples = config['samples'],
-#		gene_names = config['ref']['genenames'],
-#		DEcontrasts = "resources/DE.contrast.list",
-#		counts = expand("results/quant/{sample}", sample=samples)
-#	output:
-#		csvs = expand("results/genediff/{comp}.csv", comp=config['contrasts']),
-#		xlsx = "results/genediff/RNA-Seq_diff.xlsx",
-#		pca = "results/plots/PCA.pdf",
-#		countstats = "results/quant/count_statistics.tsv"
-#	priority: 10
-#	conda:
-#		"../envs/diffexp.yaml"
-#	log:
-#		"logs/DifferentialGeneExpression.log"
-#	script:
-#		"../scripts/DeseqGeneDE.R"
+# rule DifferentialGeneExpression:
+# 	input:
+# 		samples = config['samples'],
+# 		gene_names = config['ref']['genenames'],
+# 		DEcontrasts = "resources/DE.contrast.list",
+# 		counts = expand("results/quant/{sample}", sample=samples)
+# 	output:
+# 		csvs = expand("results/genediff/{comp}.csv", comp=config['contrasts']),
+# 		xlsx = "results/genediff/RNA-Seq_diff.xlsx",
+# 		pca = "results/plots/PCA.pdf",
+# 		countstats = "results/quant/count_statistics.tsv"
+# 	priority: 10
+# 	conda:
+# 		"../envs/diffexp.yaml"
+# 	log:
+# 		"logs/DifferentialGeneExpression.log"
+# 	script:
+# 		"../scripts/Differential.R"

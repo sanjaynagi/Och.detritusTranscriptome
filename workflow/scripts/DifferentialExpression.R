@@ -22,9 +22,9 @@ library(EnhancedVolcano)
 #read metadata and get contrasts
 samples = fread("config/samples.tsv", sep="\t") %>% as.data.frame()
 contrasts = c("Control_EPNexposed", "Control_volatiles", "EPNexposed_volatiles")
-gene_names = fread("resources/Aedes_homologs.tsv") %>% select(name, GeneID)
-colnames(gene_names) = c("Aedes_aegypti_homolog", "GeneID")
+gene_names = fread("results/eggnog_gene_annots.tsv", sep="\t")
 
+# remove sample 4 EPN as its an outlier on PCAs
 samples = samples %>% filter(Name != "EPN_exposed_4")
 
 
@@ -129,6 +129,10 @@ null = dev.off()
 # round numbers to be whole, they are not due averaging across transcripts
 counts = counts %>% rownames_to_column('GeneID') %>% 
   mutate_if(is.numeric, round) %>% column_to_rownames('GeneID')
+
+# remove lowly expressed genes
+counts = counts[rowMeans(counts) > 5,]
+
 
 ############ Plots PCA with all data, and performs DESeq2 normalisation ########################
 res = vst_pca(counts, samples, colourvar = 'treatment', name="PCA")
